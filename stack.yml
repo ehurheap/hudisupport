@@ -1,0 +1,58 @@
+version: '2.2'
+
+services:
+
+  dynamodb_local:
+    image: "amazon/dynamodb-local:latest"
+    ports:
+      - "8011:8000"
+    volumes:
+      - "./target/docker/dynamodb:/home/dynamodblocal/data"
+    working_dir: /home/dynamodblocal
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    container_name: dynamodb_local_1
+
+  spark:
+    image: sample_spark/latest
+    depends_on:
+      - "dynamodb_local"
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - AWS_ACCESS_KEY_ID=DUMMYIDEXAMPLE
+      - AWS_SECRET_ACCESS_KEY=DUMMYEXAMPLEKEY
+      - REGION=us-east-1
+    ports:
+      - "8080:8080"             # spark ui
+      - "8090:8081"             # port may be used for viewing logs through the UI
+      - "4040:4040"             # application details in spark ui
+      - "5005:5005"             # IntelliJ Remote JVM debugger
+    container_name: spark_1
+    volumes:
+      - "./target/hudi/data:/tmp/heap/hudi/data"
+    network_mode: "host"
+
+  spark_worker:
+    image: sample_spark/latest
+    depends_on:
+      - "dynamodb_local"
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_WORKER_MEMORY=4G
+      - SPARK_WORKER_CORES=4
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - AWS_ACCESS_KEY_ID=DUMMYIDEXAMPLE
+      - AWS_SECRET_ACCESS_KEY=DUMMYEXAMPLEKEY
+      - REGION=us-east-1
+    ports:
+      - "8091:8081"             # use port 8091 for viewing logs here to not conflict with master
+    container_name: spark_worker_1
+    volumes:
+      - "./target/hudi/data:/tmp/heap/hudi/data"
