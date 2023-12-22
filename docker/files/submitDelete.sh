@@ -1,9 +1,6 @@
 #!/bin/bash
 set -euxo pipefail
 
-# assumes spark container was built
-# given jobName, jar, mainClass, argsFile
-# submits job + args to spark cluster
 DELETE_JAR=/home/heap/deleter-main-assembly-0.1.0-SNAPSHOT.jar
 MAIN_CLASS=com.sample.delete.DeleteRunner
 

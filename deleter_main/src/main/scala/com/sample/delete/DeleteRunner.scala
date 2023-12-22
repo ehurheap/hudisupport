@@ -29,7 +29,7 @@ object DeleteRunner {
 
   def main(args: Array[String]): Unit = {
 
-    // create dataframe
+    // create simple dataframe of (col1: Integer, col2: String)
     val schema = StructType(
       Array(
         StructField("col1", IntegerType, true),
@@ -45,9 +45,10 @@ object DeleteRunner {
       .options(writeOptions)
       .mode("append")
       .save(tablePath)
-
     val savedRecords = readTable()
     savedRecords.show()
+
+    // assemble RDD[HoodieKey] with keys to be deleted
     implicit val hoodieKeyEncoder: Encoder[HoodieKey] =
       Encoders.bean(classOf[org.apache.hudi.common.model.HoodieKey])
     val keysToDelete = savedRecords
@@ -62,11 +63,13 @@ object DeleteRunner {
       }
       .toJavaRDD
 
+    // attempt delete
     UUIDRecordKeyDeleter.deleteRecords(tablePath, keysToDelete)
 
     val remaining = readTable().count()
     println(s"Found ${remaining} remaining")
   }
+
   def writeOptions: Map[String, String] =
     Map[String, String](
       HoodieWriteConfig.TBL_NAME.key -> "users",
